@@ -1,0 +1,44 @@
+# Service logs (here debug mode)
+debug = true
+traefikLogsFile = "/var/log/traefik/traefik.log"
+logLevel = "DEBUG"
+defaultEntryPoints = ["https","http"]
+
+# Entrypoints
+[entryPoints]
+    [entryPoints.http]
+    address = ":80"
+    [entryPoints.http.forwardedHeaders]
+      trustedIPs = ["172.21.0.1/32"]
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+domain = "http://dockeriotlab.francecentral.cloudapp.azure.com"
+watch = true
+exposedbydefault = false
+
+        
+# Access log
+filePath = "/var/log/traefik/access.log"
+format = "common"
+
+# Admin dashboard
+[web]
+address = ":8080"
+
+
+# Reload is file modified
+watch = true
+
+[acme]
+email = "paul.zeino-ext@alstomgroup.com"
+storage = "acme.json"
+entryPoint = "https"
+OnHostRule = true
+[acme.httpChallenge]
+entryPoint = "http"

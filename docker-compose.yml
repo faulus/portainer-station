@@ -1,0 +1,119 @@
+version: '3'
+
+services:
+
+  traefik:
+        container_name: traefik
+        image: traefik:latest
+        restart: always
+        command: --web --docker --docker.domain=docker.localhost --logLevel=DEBUG
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"
+        labels:
+            - "traefik.enable=false"
+            - "traefik.port=8080"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - "/traefik/letsencrypt.json:/etc/traefik/letsencrypt.json"
+            - "/traefik/traefik.toml:/etc/traefik/traefik.toml"
+            - "/traefik/log:/var/log/traefik"
+ # proxy:
+  #  build: nginx-proxy/
+  #  container_name: nginx-proxy
+  #  ports:
+  #    - "80:80"
+  #  restart: on-failure
+
+
+  templates:
+    build: portainer-templates/ 
+    container_name: "portainer-templates"
+
+
+
+
+  logo:
+    build: portainer-logo
+    container_name: logo
+
+
+
+
+  portainer:
+    image: portainer/portainer
+    container_name: "portainer-app"
+#Automatically choose 'Manage the Docker instance where Portainer is running' by adding <--host=unix:///var/run/docker.sock> to the command
+    command: --no-auth --templates http://templates/templates.json --logo "http://logo/logo.svg"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/portainer/data:/data
+    labels:
+      - "traefik.backend=portainer"
+      - "traefik.frontend.rule=PathPrefixStrip: /portainer"
+
+
+
+  watchtower:
+    image: v2tec/watchtower
+    container_name: "portainer-watchtower"
+    command: --cleanup portainer-app portainer-watchtower portainer/templates
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+
+
+
+  grafana:
+     image: grafana/grafana
+     container_name: grafana
+     volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini/
+    # environment:
+     # - GF_PATHS_CONFIG= /grafana.ini
+     labels:
+      - "traefik.backend=grafana"
+      - "traefik.frontend.rule=PathPrefixStrip: /grafana"
+
+
+
+
+  zeppelin:
+     build: zeppelin/
+     container_name: zeppelin
+     labels:
+      - "traefik.backend=notebook"
+      - "traefik.frontend.rule=PathPrefixStrip: /notebook/"
+
+
+
+  nifi:
+     build: nifi/
+     container_name: nifi
+     labels:
+      - "traefik.backend=nifi"
+      - "traefik.frontend.rule=PathPrefixStrip: /nifi/"
+
+
+
+  webserver:
+#     build: webserver/
+    image: nginx
+    container_name: webserver
+    volumes:
+      - /home/docker/data/ministation/webserver/www/:/usr/share/nginx/html/
+    labels:
+      - "traefik.backend=webserver"
+      - "traefik.frontend.rule=PathPrefixStrip: /"
+
+
+  elfinder:
+ #     build: elfinder/
+    image: sebastianhutter/elfinder
+    container_name: elfinder
+    environment:
+      - ELFINDER_FILES_URI = /elfinder/files
+    labels:
+      - "traefik.backend=elfinder"
+      - "traefik.frontend.rule=PathPrefixStrip: /elfinder"
